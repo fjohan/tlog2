@@ -62,6 +62,11 @@
   const deleteBtn = document.getElementById("deleteBtn");
   const fullscreenBtn = document.getElementById("fullscreenBtn");
 
+  const modeRecordBtn = document.getElementById("modeRecord");
+  const modeAnalysisBtn = document.getElementById("modeAnalysis");
+  const recordPanel = document.getElementById("recordPanel");
+  const analysisPanel = document.getElementById("analysisPanel");
+
   const fontSelect = document.getElementById("fontSelect");
   const root = document.documentElement;
 
@@ -282,6 +287,22 @@
     };
   }
 
+  function setMode(mode) {
+    const isRecord = mode !== "analysis";
+    recordPanel.classList.toggle("is-active", isRecord);
+    analysisPanel.classList.toggle("is-active", !isRecord);
+    modeRecordBtn.classList.toggle("is-active", isRecord);
+    modeAnalysisBtn.classList.toggle("is-active", !isRecord);
+    modeRecordBtn.setAttribute("aria-selected", String(isRecord));
+    modeAnalysisBtn.setAttribute("aria-selected", String(!isRecord));
+    if (!isRecord && overlay.classList.contains("is-open")) {
+      closeOverlay({save:true});
+    }
+    if (isRecord && window.tlogReplay && typeof window.tlogReplay.stopReplay === "function") {
+      window.tlogReplay.stopReplay();
+    }
+  }
+
   // ---------- DB ops ----------
   async function loadNotes() {
     return new Promise((resolve, reject) => {
@@ -355,6 +376,8 @@
         }
       });
     });
+
+    updateNoteFocusEffects();
   }
 
   function renderEditor() {
@@ -739,8 +762,37 @@
 
   searchEl.addEventListener("input", renderList);
 
+  let focusRaf = null;
+  function updateNoteFocusEffects() {
+    if (!notesListEl) return;
+    if (focusRaf) cancelAnimationFrame(focusRaf);
+    focusRaf = requestAnimationFrame(() => {
+      const rect = notesListEl.getBoundingClientRect();
+      if (rect.height === 0) return;
+      const centerY = rect.top + rect.height / 2;
+      const maxDistance = rect.height / 2;
+      const cards = notesListEl.querySelectorAll(".note-card");
+      cards.forEach(card => {
+        const cRect = card.getBoundingClientRect();
+        const cCenter = cRect.top + cRect.height / 2;
+        const dist = Math.abs(cCenter - centerY);
+        const t = Math.min(dist / maxDistance, 1);
+        const opacity = 1 - (t * 0.75);
+        const scale = 1 - (t * 0.05);
+        card.style.opacity = opacity.toFixed(2);
+        card.style.transform = `scale(${scale.toFixed(3)})`;
+      });
+    });
+  }
+
+  notesListEl.addEventListener("scroll", updateNoteFocusEffects);
+  window.addEventListener("resize", updateNoteFocusEffects);
+
   overlayClose.addEventListener("click", () => closeOverlay({save:false}));
   overlaySave.addEventListener("click", () => closeOverlay({save:true}));
+
+  modeRecordBtn.addEventListener("click", () => setMode("record"));
+  modeAnalysisBtn.addEventListener("click", () => setMode("analysis"));
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeOverlay({save:false});
@@ -822,6 +874,7 @@
     setDirty(false);
     renderList();
     renderEditor();
+    setMode("record");
 
   })().catch(err => {
     console.error(err);

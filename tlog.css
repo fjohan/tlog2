@@ -24,21 +24,17 @@ body {
 
 .app {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 340px 1fr;
-}
-
-@media (max-width: 900px) {
-  .app { grid-template-columns: 1fr; }
-  .sidebar { border-right: none; border-bottom: 1px solid var(--line); }
-}
-
-.sidebar {
-  border-right: 1px solid var(--line);
-  padding: 14px;
   display: flex;
   flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  padding: 14px 18px 8px;
+  border-bottom: 1px solid var(--line);
 }
 
 .brand {
@@ -113,6 +109,8 @@ select {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 60vh;
+  scroll-snap-type: y proximity;
 }
 
 .note-card {
@@ -121,6 +119,8 @@ select {
   padding: 12px;
   background: #fff;
   cursor: pointer;
+  scroll-snap-align: center;
+  transition: opacity 180ms ease, transform 180ms ease;
 }
 .note-card.active {
   border-color: #111;
@@ -197,12 +197,139 @@ select {
   justify-content: flex-end;
 }
 
+.record-controls {
+  max-width: 320px;
+}
+
+.mode-switch {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafafa;
+  width: fit-content;
+}
+
+.mode-btn {
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 8px 12px;
+}
+
+.mode-btn.is-active {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+.panel {
+  display: none;
+}
+
+.panel.is-active {
+  display: block;
+}
+
+.analysis-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .analysis-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.notes-panel {
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.notes-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notes-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.replay-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
 .editor-shell {
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 10px;
   min-height: 0;
   flex: 1;
+}
+
+.replay-input-wrap {
+  position: relative;
+  min-height: 260px;
+  flex: 1;
+}
+
+.replay-input-wrap textarea {
+  height: 100%;
+}
+
+.replay-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.replay-selection {
+  position: absolute;
+  background: rgba(10, 108, 255, 0.18);
+  border-radius: 4px;
+}
+
+.replay-caret {
+  position: absolute;
+  width: 2px;
+  background: #0a6cff;
+  height: 1em;
+  border-radius: 2px;
+}
+
+.replay-measure {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.replay-measure .cursor-marker {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+}
+
+.replay-editor textarea {
+  min-height: 260px;
 }
 
 .title-input {

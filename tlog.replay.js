@@ -9,6 +9,10 @@
   const replaySlider = document.getElementById("replaySlider");
   const replayTime = document.getElementById("replayTime");
   const progressGraph = document.getElementById("progressGraph");
+  const replayTitle = document.getElementById("replayTitle");
+  const replayBody = document.getElementById("replayBody");
+  const replayOverlay = document.getElementById("replayOverlay");
+  const replayMeasure = document.getElementById("replayMeasure");
   const controlsToDisable = [
     document.getElementById("newBtn"),
     document.getElementById("saveBtn"),
@@ -35,14 +39,12 @@
   let originalState = null;
   let inputLocked = false;
   let graphState = null;
+  let overlayState = { text: "", start: 0, end: 0 };
 
   function setControlsDisabled(disabled) {
     controlsToDisable.forEach(el => { if (el) el.disabled = disabled; });
     inputLocked = disabled;
-  }
-
-  function getReplayTarget() {
-    return app.overlay.classList.contains("is-open") ? app.overlayBody : app.bodyInput;
+    if (replayBody) replayBody.readOnly = true;
   }
 
   function formatMs(ms) {
@@ -104,54 +106,52 @@
     const cursorEv = lastEventBefore(cursorEvents, absTime);
 
     const text = textEv ? textEv.value : "";
-    app.bodyInput.value = text;
-    app.overlayBody.value = text;
+    replayBody.value = text;
 
+    let start = 0;
+    let end = 0;
     if (cursorEv) {
       const parts = String(cursorEv.value).split(":");
-      let start = Number(parts[0]);
-      let end = Number(parts[1]);
+      start = Number(parts[0]);
+      end = Number(parts[1]);
       if (!Number.isFinite(start)) start = 0;
       if (!Number.isFinite(end)) end = start;
       const max = text.length;
       start = Math.min(Math.max(start, 0), max);
       end = Math.min(Math.max(end, 0), max);
-
-      app.bodyInput.setSelectionRange(start, end);
-      app.overlayBody.setSelectionRange(start, end);
     }
 
-    const target = getReplayTarget();
-    if (document.activeElement !== target) {
-      target.focus();
+    if (document.activeElement === replayBody) {
+      replayBody.blur();
     }
 
     const cursorPos = cursorEv ? Number(String(cursorEv.value).split(":")[0]) : 0;
     updateGraphCursor(absTime, text.length, cursorPos);
+    updateReplayOverlay(text, start, end);
   }
 
   function captureOriginalState() {
-    const target = getReplayTarget();
     originalState = {
-      bodyText: app.bodyInput.value,
-      overlayText: app.overlayBody.value,
-      selectionStart: target.selectionStart,
-      selectionEnd: target.selectionEnd,
-      focusedId: target.id
+      replayText: replayBody.value,
+      replayTitle: replayTitle.value,
+      selectionStart: replayBody.selectionStart,
+      selectionEnd: replayBody.selectionEnd
     };
   }
 
   function restoreOriginalState() {
     if (!originalState) return;
-    app.bodyInput.value = originalState.bodyText;
-    app.overlayBody.value = originalState.overlayText;
+    replayBody.value = originalState.replayText;
+    replayTitle.value = originalState.replayTitle;
 
-    const target = originalState.focusedId === app.overlayBody.id ? app.overlayBody : app.bodyInput;
     if (typeof originalState.selectionStart === "number" && typeof originalState.selectionEnd === "number") {
-      target.setSelectionRange(originalState.selectionStart, originalState.selectionEnd);
+      updateReplayOverlay(
+        originalState.replayText,
+        originalState.selectionStart,
+        originalState.selectionEnd
+      );
     }
 
-    app.renderEditor();
     originalState = null;
   }
 
@@ -276,6 +276,93 @@
     elements.cursorDot.setAttribute("cy", cursorY);
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, ch => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[ch]));
+  }
+
+  function syncMeasureStyle() {
+    if (!replayBody || !replayMeasure) return;
+    const style = window.getComputedStyle(replayBody);
+    replayMeasure.style.fontFamily = style.fontFamily;
+    replayMeasure.style.fontSize = style.fontSize;
+    replayMeasure.style.lineHeight = style.lineHeight;
+    replayMeasure.style.letterSpacing = style.letterSpacing;
+    replayMeasure.style.wordSpacing = style.wordSpacing;
+    replayMeasure.style.padding = style.padding;
+    replayMeasure.style.border = style.border;
+    replayMeasure.style.boxSizing = style.boxSizing;
+    replayMeasure.style.width = `${replayBody.clientWidth}px`;
+    replayMeasure.style.height = `${replayBody.clientHeight}px`;
+  }
+
+  function ensureCaretEl() {
+    if (!replayOverlay) return null;
+    let caret = replayOverlay.querySelector(".replay-caret");
+    if (!caret) {
+      caret = document.createElement("div");
+      caret.className = "replay-caret";
+      replayOverlay.appendChild(caret);
+    }
+    return caret;
+  }
+
+  function updateReplayOverlay(text, start, end) {
+    if (!replayOverlay || !replayMeasure || !replayBody) return;
+    syncMeasureStyle();
+    const max = text.length;
+    let a = Number.isFinite(start) ? start : 0;
+    let b = Number.isFinite(end) ? end : a;
+    a = Math.min(Math.max(a, 0), max);
+    b = Math.min(Math.max(b, 0), max);
+    if (a > b) [a, b] = [b, a];
+
+    overlayState = { text, start: a, end: b };
+
+    const before = text.slice(0, a);
+    const selected = text.slice(a, b);
+    const after = text.slice(b);
+    if (selected.length > 0) {
+      replayMeasure.innerHTML = `${escapeHtml(before)}<span class="sel-range">${escapeHtml(selected)}</span><span class="cursor-marker"></span>${escapeHtml(after)}`;
+    } else {
+      replayMeasure.innerHTML = `${escapeHtml(before)}<span class="cursor-marker"></span>${escapeHtml(after)}`;
+    }
+
+    replayMeasure.scrollTop = replayBody.scrollTop;
+    replayMeasure.scrollLeft = replayBody.scrollLeft;
+
+    const baseRect = replayBody.getBoundingClientRect();
+    const caretMarker = replayMeasure.querySelector(".cursor-marker");
+    const caretRect = caretMarker ? caretMarker.getBoundingClientRect() : null;
+    const caretEl = ensureCaretEl();
+    if (caretEl && caretRect) {
+      caretEl.style.left = `${caretRect.left - baseRect.left}px`;
+      caretEl.style.top = `${caretRect.top - baseRect.top}px`;
+      caretEl.style.height = `${Math.max(14, caretRect.height)}px`;
+      caretEl.style.opacity = "1";
+    }
+
+    replayOverlay.querySelectorAll(".replay-selection").forEach(el => el.remove());
+    const selRange = replayMeasure.querySelector(".sel-range");
+    if (selRange) {
+      [...selRange.getClientRects()].forEach(rect => {
+        const selEl = document.createElement("div");
+        selEl.className = "replay-selection";
+        selEl.style.left = `${rect.left - baseRect.left}px`;
+        selEl.style.top = `${rect.top - baseRect.top}px`;
+        selEl.style.width = `${Math.max(1, rect.width)}px`;
+        selEl.style.height = `${Math.max(12, rect.height)}px`;
+        replayOverlay.appendChild(selEl);
+      });
+    }
+  }
+
+  function refreshOverlay() {
+    if (!overlayState) return;
+    updateReplayOverlay(overlayState.text, overlayState.start, overlayState.end);
+  }
+
   function stopReplay() {
     if (rafId) cancelAnimationFrame(rafId);
     rafId = null;
@@ -284,6 +371,9 @@
     replaySlider.value = "0";
     updateTimeLabel(0);
     restoreOriginalState();
+    if (replayOverlay) replayOverlay.querySelectorAll(".replay-selection").forEach(el => el.remove());
+    const caretEl = replayOverlay ? replayOverlay.querySelector(".replay-caret") : null;
+    if (caretEl) caretEl.style.opacity = "0";
   }
 
   function tick() {
@@ -322,6 +412,7 @@
     }
 
     captureOriginalState();
+    replayTitle.value = (note.title || "").trim() || "Untitled";
     setReplayMode(true);
     app.setStatus("Replaying logs...");
 
@@ -386,15 +477,22 @@
 
   // Prevent edits during replay while keeping caret visible.
   ["beforeinput", "keydown", "paste", "drop"].forEach(type => {
-    app.bodyInput.addEventListener(type, blockEditing, true);
-    app.overlayBody.addEventListener(type, blockEditing, true);
+    replayBody.addEventListener(type, blockEditing, true);
   });
+
+  replayBody.addEventListener("focus", () => replayBody.blur());
+  replayBody.addEventListener("scroll", refreshOverlay);
+  window.addEventListener("resize", refreshOverlay);
 
   document.addEventListener("click", (e) => {
     if (!inputLocked) return;
     const card = e.target.closest ? e.target.closest(".note-card") : null;
     if (card) stopReplay();
   });
+
+  window.tlogReplay = {
+    stopReplay
+  };
 
   setReplayMode(false);
 })();
