@@ -27,13 +27,12 @@
           <div class="status" id="status">Create a note or pick one from the list.</div>
         </div>
 
-        <div class="main-actions">
-          <button id="newBtn" type="button">+ New</button>
-          <button id="fullscreenBtn" type="button">Full screen</button>
-          <button id="saveBtn" class="primary" type="button">Save</button>
-          <button id="deleteBtn" class="danger" type="button">Delete</button>
-        </div>
+      <div class="main-actions">
+        <button id="newBtn" type="button">+ New</button>
+        <button id="fullscreenBtn" type="button">Full screen</button>
+        <button id="saveBtn" class="primary" type="button">Save</button>
       </div>
+    </div>
 
       <div class="record-controls">
         <label for="fontSelect">Editor font</label>
@@ -79,6 +78,7 @@
               <button id="exportBtn" type="button" title="Export all notes to JSON">Export</button>
               <button id="exportLogsBtn" type="button" title="Export active note logs to JSON">Export logs</button>
               <button id="clearLogsBtn" type="button" title="Clear active note logs">Clear logs</button>
+              <button id="deleteBtn" class="danger" type="button">Delete</button>
             </div>
           </div>
 
@@ -117,6 +117,29 @@
             </div>
           </div>
 
+          <div class="revision-panel" aria-label="Revision table">
+            <div class="revision-header">
+              <h3>Revision table</h3>
+              <span class="status" id="revisionStatus">Select a note to build revisions.</span>
+            </div>
+            <div class="revision-table-wrap">
+              <table class="revision-table" id="revisionTable">
+                <thead>
+                  <tr>
+                    <th>Row</th>
+                    <th>Local diff</th>
+                    <th>Class</th>
+                    <th>Location</th>
+                    <th>New group</th>
+                    <th>Group diff</th>
+                    <th>Time (s)</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="editor-shell replay-editor">
             <input id="replayTitle" class="title-input" placeholder="Title" readonly />
             <div class="replay-input-wrap">
@@ -146,7 +169,10 @@
   </div>
 </div>
 
-<script src="tlog.js"></script>
-<script src="tlog.replay.js"></script>
+<script src="tlog.js?v=1"></script>
+<script src="../../simple/diff_match_patch.js?v=1"></script>
+<script src="tlog.replay.graph.js?v=1"></script>
+<script src="tlog.replay.table.js?v=1"></script>
+<script src="tlog.replay.core.js?v=1"></script>
 </body>
 </html>

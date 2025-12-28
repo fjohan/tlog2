@@ -150,21 +150,21 @@
   // ---------- Logging core ----------
   // We log into the ACTIVE note only.
   // We *do not* write to IndexedDB on every event (too heavy); we debounce-persist via autosave.
-  function logTextSnapshot(text) {
+  function logTextSnapshot(text, ts) {
     if (isReplaying) return;
     const n = getActive(); if (!n) return;
     const logs = ensureLogs(n);
     noteSessionTouch(n);
-    putRecord(logs.text_records, nowMS(), text);
+    putRecord(logs.text_records, typeof ts === "number" ? ts : nowMS(), text);
     updateLogStatsUI();
   }
 
-  function logCursor(el) {
+  function logCursor(el, ts) {
     if (isReplaying) return;
     const n = getActive(); if (!n) return;
     const logs = ensureLogs(n);
     noteSessionTouch(n);
-    putRecord(logs.cursor_records, nowMS(), cursorStringFor(el));
+    putRecord(logs.cursor_records, typeof ts === "number" ? ts : nowMS(), cursorStringFor(el));
     updateLogStatsUI();
   }
 
@@ -196,30 +196,19 @@
     // Text changes
     el.addEventListener("input", () => {
       // snapshot text *after* input
-      logTextSnapshot(el.value);
-      logCursor(el); // selection often changes with input
+      const ts = nowMS();
+      logTextSnapshot(el.value, ts);
+      logCursor(el, ts); // keep cursor aligned to the text snapshot
       markDirtyAndAutosaveFrom(el);
     }, { passive: true });
 
     // Key events
     el.addEventListener("keydown", (e) => {
       logKey("keydown", e);
-      // Cursor changes may happen on arrows/backspace before input fires
-      // (selectionStart updates after the event loop; schedule one tick)
-      queueMicrotask(() => logCursor(el));
     });
 
     el.addEventListener("keyup", (e) => {
       logKey("keyup", e);
-      queueMicrotask(() => logCursor(el));
-    });
-
-    // Cursor / selection changes from pointer interactions
-    // (mouseup/touchend/click capture changes)
-    ["mousedown","mouseup","touchstart","touchend","click"].forEach(type => {
-      el.addEventListener(type, () => {
-        queueMicrotask(() => logCursor(el));
-      }, { passive: true });
     });
 
     // Selection changes can also happen without mouseup (e.g. iOS selection handles)
@@ -229,18 +218,15 @@
     // Scroll changes
     el.addEventListener("scroll", () => logScroll(el), { passive: true });
 
-    // Focus/blur update session endtime + cursor record
+    // Focus/blur update session endtime
     el.addEventListener("focus", () => {
       const n = getActive(); if (!n) return;
       noteSessionTouch(n);
-      logCursor(el);
     });
 
     el.addEventListener("blur", () => {
       const n = getActive(); if (!n) return;
       noteSessionTouch(n);
-      // optional: record cursor at blur
-      logCursor(el);
     });
   }
 
@@ -277,6 +263,13 @@
     dirty = isDirty;
     if (!activeId) return;
     setStatus(isDirty ? "Unsaved changes…" : "Saved");
+  }
+
+  function notifyActiveNote() {
+    document.dispatchEvent(new CustomEvent("tlog:notechange", { detail: { id: activeId } }));
+    if (window.tlogReplay && typeof window.tlogReplay.refreshReplayNote === "function") {
+      window.tlogReplay.refreshReplayNote();
+    }
   }
 
   function debounce(fn, ms) {
@@ -432,6 +425,7 @@
     setDirty(false);
     renderList();
     renderEditor();
+    notifyActiveNote();
 
     titleInput.focus();
   }
@@ -442,6 +436,7 @@
     setDirty(false);
     renderList();
     renderEditor();
+    notifyActiveNote();
   }
 
   async function saveActiveFromInputs() {
@@ -704,6 +699,7 @@
     setDirty(false);
     renderList();
     renderEditor();
+    notifyActiveNote();
     titleInput.focus();
   }
 
@@ -713,6 +709,7 @@
     setDirty(false);
     renderList();
     renderEditor();
+    notifyActiveNote();
   }
 
   async function deleteActive() {
@@ -733,6 +730,7 @@
     setDirty(false);
     renderList();
     renderEditor();
+    notifyActiveNote();
   }
 
   async function loadNotes() {
@@ -874,6 +872,7 @@
     setDirty(false);
     renderList();
     renderEditor();
+    notifyActiveNote();
     setMode("record");
 
   })().catch(err => {

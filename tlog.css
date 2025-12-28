@@ -273,6 +273,90 @@ select {
   min-height: 0;
 }
 
+.revision-panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+.revision-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.revision-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.revision-table-wrap {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.revision-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.revision-table thead th {
+  position: sticky;
+  top: 0;
+  background: #fafafa;
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.revision-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.revision-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rev-ins {
+  color: #0a7a2a;
+  font-weight: 600;
+}
+
+.rev-del {
+  color: #b00020;
+  font-weight: 600;
+}
+
+.rev-rep {
+  color: #b36b00;
+  font-weight: 600;
+}
+
+.new-group {
+  font-weight: 600;
+}
+
+.rev-inline-ins {
+  background: rgba(10, 122, 42, 0.15);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+.rev-inline-del {
+  background: rgba(176, 0, 32, 0.15);
+  border-radius: 4px;
+  padding: 0 2px;
+  text-decoration: line-through;
+}
+
 .editor-shell {
   display: grid;
   grid-template-rows: auto 1fr auto;

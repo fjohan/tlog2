@@ -8,11 +8,12 @@
   const replaySpeed = document.getElementById("replaySpeed");
   const replaySlider = document.getElementById("replaySlider");
   const replayTime = document.getElementById("replayTime");
-  const progressGraph = document.getElementById("progressGraph");
   const replayTitle = document.getElementById("replayTitle");
   const replayBody = document.getElementById("replayBody");
   const replayOverlay = document.getElementById("replayOverlay");
   const replayMeasure = document.getElementById("replayMeasure");
+  const notesListEl = document.getElementById("notesList");
+
   const controlsToDisable = [
     document.getElementById("newBtn"),
     document.getElementById("saveBtn"),
@@ -35,10 +36,8 @@
   let speed = 1;
   let textEvents = [];
   let cursorEvents = [];
-
   let originalState = null;
   let inputLocked = false;
-  let graphState = null;
   let overlayState = { text: "", start: 0, end: 0 };
 
   function setControlsDisabled(disabled) {
@@ -58,12 +57,14 @@
     replayTime.textContent = `${formatMs(currentMs)} / ${formatMs(duration)}`;
   }
 
-  function collectEvents(logs) {
-    const toSortedEvents = (records) => Object.entries(records || {})
+  function toSortedEvents(records) {
+    return Object.entries(records || {})
       .map(([ts, value]) => ({ ts: Number(ts), value }))
       .filter(e => Number.isFinite(e.ts))
       .sort((a, b) => a.ts - b.ts);
+  }
 
+  function collectEvents(logs) {
     textEvents = toSortedEvents(logs.text_records);
     cursorEvents = toSortedEvents(logs.cursor_records);
 
@@ -80,7 +81,10 @@
     replaySlider.max = String(duration);
     replaySlider.value = "0";
     updateTimeLabel(0);
-    buildGraph();
+
+    if (window.tlogReplayGraph) {
+      window.tlogReplayGraph.buildGraph({ textEvents, cursorEvents, t0, tEnd, duration });
+    }
     return true;
   }
 
@@ -126,7 +130,9 @@
     }
 
     const cursorPos = cursorEv ? Number(String(cursorEv.value).split(":")[0]) : 0;
-    updateGraphCursor(absTime, text.length, cursorPos);
+    if (window.tlogReplayGraph) {
+      window.tlogReplayGraph.updateCursor(absTime, text.length, cursorPos);
+    }
     updateReplayOverlay(text, start, end);
   }
 
@@ -163,117 +169,6 @@
     replayStopBtn.disabled = !active;
     replaySlider.disabled = !active;
     replaySpeed.disabled = false;
-  }
-
-  function createGraphElements(svg) {
-    svg.innerHTML = "";
-    const ns = "http://www.w3.org/2000/svg";
-    const axis = document.createElementNS(ns, "path");
-    axis.setAttribute("stroke", "#e0e0e0");
-    axis.setAttribute("fill", "none");
-    axis.setAttribute("stroke-width", "1");
-    svg.appendChild(axis);
-
-    const textLine = document.createElementNS(ns, "polyline");
-    textLine.setAttribute("fill", "none");
-    textLine.setAttribute("stroke", "#111");
-    textLine.setAttribute("stroke-width", "2");
-    textLine.setAttribute("id", "graphTextLine");
-    svg.appendChild(textLine);
-
-    const cursorLine = document.createElementNS(ns, "polyline");
-    cursorLine.setAttribute("fill", "none");
-    cursorLine.setAttribute("stroke", "#0a6cff");
-    cursorLine.setAttribute("stroke-width", "2");
-    cursorLine.setAttribute("id", "graphCursorLine");
-    svg.appendChild(cursorLine);
-
-    const nowLine = document.createElementNS(ns, "line");
-    nowLine.setAttribute("stroke", "#999");
-    nowLine.setAttribute("stroke-width", "1");
-    nowLine.setAttribute("id", "graphNowLine");
-    svg.appendChild(nowLine);
-
-    const textDot = document.createElementNS(ns, "circle");
-    textDot.setAttribute("r", "3.5");
-    textDot.setAttribute("fill", "#111");
-    textDot.setAttribute("id", "graphTextDot");
-    svg.appendChild(textDot);
-
-    const cursorDot = document.createElementNS(ns, "circle");
-    cursorDot.setAttribute("r", "3.5");
-    cursorDot.setAttribute("fill", "#0a6cff");
-    cursorDot.setAttribute("id", "graphCursorDot");
-    svg.appendChild(cursorDot);
-
-    return { axis, textLine, cursorLine, nowLine, textDot, cursorDot };
-  }
-
-  function buildGraph() {
-    if (!progressGraph || duration <= 0) return;
-
-    const w = 1000;
-    const h = 180;
-    const pad = { left: 36, right: 10, top: 10, bottom: 24 };
-    const innerW = w - pad.left - pad.right;
-    const innerH = h - pad.top - pad.bottom;
-
-    const textLengths = textEvents.map(ev => String(ev.value || "").length);
-    const cursorPositions = cursorEvents.map(ev => {
-      const start = Number(String(ev.value).split(":")[0]);
-      return Number.isFinite(start) ? start : 0;
-    });
-
-    const maxLen = Math.max(1, ...textLengths, ...cursorPositions);
-
-    const scaleX = (ts) => pad.left + ((ts - t0) / duration) * innerW;
-    const scaleY = (val) => pad.top + (1 - (val / maxLen)) * innerH;
-
-    const pointsFrom = (events, valueFn) => events.map(ev => {
-      const x = scaleX(ev.ts);
-      const y = scaleY(valueFn(ev));
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(" ");
-
-    const elements = createGraphElements(progressGraph);
-    elements.axis.setAttribute(
-      "d",
-      `M ${pad.left} ${pad.top} L ${pad.left} ${h - pad.bottom} L ${w - pad.right} ${h - pad.bottom}`
-    );
-
-    elements.textLine.setAttribute(
-      "points",
-      pointsFrom(textEvents, ev => String(ev.value || "").length)
-    );
-    elements.cursorLine.setAttribute(
-      "points",
-      pointsFrom(cursorEvents, ev => {
-        const start = Number(String(ev.value).split(":")[0]);
-        return Number.isFinite(start) ? start : 0;
-      })
-    );
-
-    graphState = { w, h, pad, innerW, innerH, maxLen, elements, scaleX, scaleY };
-    updateGraphCursor(t0, 0, 0);
-  }
-
-  function updateGraphCursor(absTime, textLen, cursorPos) {
-    if (!graphState) return;
-    const { elements, scaleX, scaleY, pad, h } = graphState;
-    const clampedTime = Math.min(Math.max(absTime, t0), tEnd);
-    const x = scaleX(clampedTime);
-    const textY = scaleY(textLen);
-    const cursorY = scaleY(cursorPos);
-
-    elements.nowLine.setAttribute("x1", x);
-    elements.nowLine.setAttribute("x2", x);
-    elements.nowLine.setAttribute("y1", pad.top);
-    elements.nowLine.setAttribute("y2", h - pad.bottom);
-
-    elements.textDot.setAttribute("cx", x);
-    elements.textDot.setAttribute("cy", textY);
-    elements.cursorDot.setAttribute("cx", x);
-    elements.cursorDot.setAttribute("cy", cursorY);
   }
 
   function escapeHtml(s) {
@@ -361,6 +256,13 @@
   function refreshOverlay() {
     if (!overlayState) return;
     updateReplayOverlay(overlayState.text, overlayState.start, overlayState.end);
+  }
+
+  function clearGraph() {
+    if (window.tlogReplayGraph) window.tlogReplayGraph.clearGraph();
+    replaySlider.max = "1";
+    replaySlider.value = "0";
+    updateTimeLabel(0);
   }
 
   function stopReplay() {
@@ -458,6 +360,74 @@
     }
   }
 
+  function blockEditing(e) {
+    if (!inputLocked) return;
+    e.preventDefault();
+  }
+
+  function seekToTimestamp(ts, timeInfo, shouldPlay) {
+    if (!Number.isFinite(ts)) return;
+    const baseT0 = timeInfo && Number.isFinite(timeInfo.t0) ? timeInfo.t0 : t0;
+    const baseDuration = timeInfo && Number.isFinite(timeInfo.duration) ? timeInfo.duration : duration;
+    const raw = ts - baseT0;
+    const current = Math.max(0, Math.min(baseDuration, raw));
+    replaySlider.value = String(Math.round(current));
+    if (raw < 0) {
+      applyStateAtTime(baseT0 - 1);
+      updateTimeLabel(0);
+      startReplayTime = 0;
+    } else {
+      applyStateAtTime(baseT0 + current);
+      updateTimeLabel(current);
+      startReplayTime = current;
+    }
+    startWallTime = performance.now();
+    if (shouldPlay) {
+      if (!originalState) captureOriginalState();
+      setReplayMode(true);
+      speed = Number(replaySpeed.value) || 1;
+      isPlaying = true;
+      replayPauseBtn.textContent = "Pause";
+      tick();
+    }
+  }
+
+  function refreshReplayNote() {
+    const note = app.getActive();
+    if (!note) {
+      replayTitle.value = "";
+      replayBody.value = "";
+      updateReplayOverlay("", 0, 0);
+      clearGraph();
+      if (window.tlogReplayTable) window.tlogReplayTable.clearTable("No note selected.");
+      return;
+    }
+
+    const logs = app.ensureLogs(note);
+    const entries = Object.entries(logs.text_records || {})
+      .map(([ts, value]) => ({ ts: Number(ts), text: String(value || "") }))
+      .filter(e => Number.isFinite(e.ts))
+      .sort((a, b) => a.ts - b.ts);
+
+    replayTitle.value = (note.title || "").trim() || "Untitled";
+    replayBody.value = note.body || "";
+    updateReplayOverlay(replayBody.value, 0, 0);
+
+    if (!collectEvents(logs)) {
+      clearGraph();
+    }
+
+    if (window.tlogReplayTable) {
+      window.tlogReplayTable.buildTable({
+        note,
+        logs,
+        entries,
+        timeInfo: { t0, duration },
+        onSeek: seekToTimestamp
+      });
+    }
+  }
+
   replayBtn.addEventListener("click", startReplay);
   replayPauseBtn.addEventListener("click", () => {
     if (!isPlaying) {
@@ -470,12 +440,6 @@
   replaySlider.addEventListener("input", handleSliderInput);
   replaySpeed.addEventListener("change", updateSpeed);
 
-  function blockEditing(e) {
-    if (!inputLocked) return;
-    e.preventDefault();
-  }
-
-  // Prevent edits during replay while keeping caret visible.
   ["beforeinput", "keydown", "paste", "drop"].forEach(type => {
     replayBody.addEventListener(type, blockEditing, true);
   });
@@ -484,6 +448,17 @@
   replayBody.addEventListener("scroll", refreshOverlay);
   window.addEventListener("resize", refreshOverlay);
 
+  document.addEventListener("tlog:notechange", refreshReplayNote);
+
+  if (notesListEl) {
+    notesListEl.addEventListener("click", () => setTimeout(refreshReplayNote, 0));
+    notesListEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        setTimeout(refreshReplayNote, 0);
+      }
+    });
+  }
+
   document.addEventListener("click", (e) => {
     if (!inputLocked) return;
     const card = e.target.closest ? e.target.closest(".note-card") : null;
@@ -491,8 +466,11 @@
   });
 
   window.tlogReplay = {
-    stopReplay
+    stopReplay,
+    refreshReplayNote,
+    seekToTimestamp
   };
 
   setReplayMode(false);
+  refreshReplayNote();
 })();
