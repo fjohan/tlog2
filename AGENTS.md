@@ -1,7 +1,15 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This repository is a single-file web app. The entire UI, styles, and logic live in `tlog.html`, which contains the HTML markup, inline CSS, and a self-contained JavaScript app that uses IndexedDB for storage. There are no separate assets, build outputs, or test directories.
+This repository is a small static web app split into HTML, CSS, and JS modules. Key files:
+
+- `tlog.html`: markup and script includes, plus the replay/record panel layout.
+- `tlog.css`: styling for the editor, replay UI, progress graph, and revision table.
+- `tlog.js`: core app logic (notes, IndexedDB, logging, UI state).
+- `tlog.replay.core.js`: replay controls and text/cursor playback logic.
+- `tlog.replay.graph.js`: progress graph rendering.
+- `tlog.replay.table.js`: revision table generation using `diff_match_patch`.
+- `../../simple/diff_match_patch.js`: local diff library used for revision table diffs.
 
 ## Build, Test, and Development Commands
 There is no build system or package manager. To run locally, open the file directly in a browser:
@@ -11,20 +19,21 @@ There is no build system or package manager. To run locally, open the file direc
 If you need a local server (e.g., for stricter browser policies), use any static server you prefer and point it at this directory.
 
 ## Coding Style & Naming Conventions
-Keep edits consistent with the existing single-file style:
+Keep edits consistent with the existing lightweight modular style:
 
 - Indentation: 2 spaces in HTML/CSS/JS.
 - JavaScript: prefer `const`/`let`, arrow functions, and small helper functions.
 - Naming: use camelCase for JS variables/functions and kebab-case for CSS classes.
 - Keep UI strings short and actionable (e.g., button labels like `Export logs`).
 
-No formatter or linter is configured. Avoid introducing new dependencies.
+No formatter or linter is configured. Avoid introducing new dependencies; when needed, prefer local scripts like `diff_match_patch.js`.
 
 ## Testing Guidelines
 There is no automated test framework in this repo. Validate changes manually:
 
 - Open `tlog.html` in a browser.
 - Create a note, edit the body, and verify autosave and logging counts update.
+- Switch to Replay & Analysis and ensure the progress graph and revision table update on note selection.
 - Export logs and confirm a JSON download occurs.
 
 ## Commit & Pull Request Guidelines
