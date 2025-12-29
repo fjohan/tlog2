@@ -400,6 +400,7 @@
       updateReplayOverlay("", 0, 0);
       clearGraph();
       if (window.tlogReplayTable) window.tlogReplayTable.clearTable("No note selected.");
+      if (window.tlogReplayLinear) window.tlogReplayLinear.clearLinear("No note selected.");
       return;
     }
 
@@ -425,6 +426,10 @@
         timeInfo: { t0, duration },
         onSeek: seekToTimestamp
       });
+    }
+
+    if (window.tlogReplayLinear) {
+      window.tlogReplayLinear.buildLinear({ logs, entries });
     }
   }
 

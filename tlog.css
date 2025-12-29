@@ -325,6 +325,56 @@ select {
   border-bottom: none;
 }
 
+.linear-output {
+  width: 100%;
+  min-height: 140px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.linear-insert {
+  color: #0a7a2a;
+}
+
+.linear-delete {
+  color: #b00020;
+}
+
+.linear-nav {
+  color: #0a6cff;
+}
+
+.linear-time {
+  color: #111;
+}
+
+.linear-marker {
+  color: #777;
+}
+
+.linear-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.linear-controls input[type="number"] {
+  width: 90px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+}
+
 .rev-ins {
   color: #0a7a2a;
   font-weight: 600;

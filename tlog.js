@@ -93,7 +93,8 @@
       text_records: {},      // ts -> full text
       cursor_records: {},    // ts -> "a:b"
       key_records: {},       // ts -> "keydown: X"
-      scroll_records: {}     // ts -> "top:left" or number
+      scroll_records: {},    // ts -> "top:left" or number
+      mouse_records: {}      // ts -> cursor position (number)
     };
   }
 
@@ -104,6 +105,7 @@
     if (!note.logs.cursor_records) note.logs.cursor_records = {};
     if (!note.logs.key_records) note.logs.key_records = {};
     if (!note.logs.scroll_records) note.logs.scroll_records = {};
+    if (!note.logs.mouse_records) note.logs.mouse_records = {};
     return note.logs;
   }
 
@@ -191,6 +193,7 @@
     updateLogStatsUI();
   }
 
+
   // Attach logging listeners to a textarea-like element
   function attachEditorLogging(el, { isOverlay=false } = {}) {
     // Text changes
@@ -217,6 +220,8 @@
 
     // Scroll changes
     el.addEventListener("scroll", () => logScroll(el), { passive: true });
+
+    // Cursor changes are logged via input + selectionchange.
 
     // Focus/blur update session endtime
     el.addEventListener("focus", () => {

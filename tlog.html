@@ -140,6 +140,18 @@
             </div>
           </div>
 
+          <div class="revision-panel" aria-label="Linear representation">
+            <div class="revision-header">
+              <h3>Linear representation</h3>
+              <span class="status" id="linearStatus">Select a note to build linear output.</span>
+            </div>
+            <div class="linear-controls">
+              <label for="pauseThreshold">Pause threshold (s)</label>
+              <input id="pauseThreshold" type="number" min="0" step="0.05" value="0.2" />
+            </div>
+            <div id="linearOutput" class="linear-output" role="textbox" aria-readonly="true"></div>
+          </div>
+
           <div class="editor-shell replay-editor">
             <input id="replayTitle" class="title-input" placeholder="Title" readonly />
             <div class="replay-input-wrap">
@@ -169,10 +181,11 @@
   </div>
 </div>
 
-<script src="tlog.js?v=1"></script>
-<script src="../../simple/diff_match_patch.js?v=1"></script>
-<script src="tlog.replay.graph.js?v=1"></script>
-<script src="tlog.replay.table.js?v=1"></script>
-<script src="tlog.replay.core.js?v=1"></script>
+<script src="tlog.js?v=2"></script>
+<script src="../../simple/diff_match_patch.js?v=2"></script>
+<script src="tlog.replay.graph.js?v=2"></script>
+<script src="tlog.replay.table.js?v=2"></script>
+<script src="tlog.replay.linear.js?v=9"></script>
+<script src="tlog.replay.core.js?v=2"></script>
 </body>
 </html>
