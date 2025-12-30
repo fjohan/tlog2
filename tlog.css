@@ -571,12 +571,25 @@ textarea {
   background: #888;
 }
 
-.legend-item.text-line::before {
-  background: #111;
+.legend-item.process-line::before {
+  background: #0a6cff;
 }
 
-.legend-item.cursor-line::before {
-  background: #0a6cff;
+.legend-item.product-line::before {
+  background: #0a7a2a;
+}
+
+.legend-item.position-line::before {
+  background: transparent;
+  border-top: 2px dashed #0a7a2a;
+  height: 2px;
+}
+
+.legend-item.pause-dot::before {
+  background: #f29f05;
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
 }
 
 .replay-panel button[disabled],

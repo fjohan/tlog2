@@ -77,6 +77,7 @@
             <div class="row">
               <button id="exportBtn" type="button" title="Export all notes to JSON">Export</button>
               <button id="exportLogsBtn" type="button" title="Export active note logs to JSON">Export logs</button>
+              <button id="exportDiffsBtn" type="button" title="Export diffs for active note">Export diffs</button>
               <button id="clearLogsBtn" type="button" title="Clear active note logs">Clear logs</button>
               <button id="deleteBtn" class="danger" type="button">Delete</button>
             </div>
@@ -108,11 +109,13 @@
             </div>
             <input id="replaySlider" class="replay-slider" type="range" min="0" max="1" value="0" step="1" />
             <div class="replay-graph">
-              <div class="replay-graph-label">Progress graph (chars vs time)</div>
+              <div class="replay-graph-label">Process graph (time vs characters)</div>
               <svg id="progressGraph" viewBox="0 0 1000 180" preserveAspectRatio="none" aria-label="Progress graph"></svg>
               <div class="replay-graph-legend">
-                <span class="legend-item text-line">Text length</span>
-                <span class="legend-item cursor-line">Cursor position</span>
+                <span class="legend-item process-line">Process</span>
+                <span class="legend-item product-line">Product</span>
+                <span class="legend-item position-line">Position</span>
+                <span class="legend-item pause-dot">Pause</span>
               </div>
             </div>
           </div>
@@ -183,9 +186,9 @@
 
 <script src="tlog.js?v=2"></script>
 <script src="../../simple/diff_match_patch.js?v=2"></script>
-<script src="tlog.replay.graph.js?v=2"></script>
+<script src="tlog.replay.graph.js?v=4"></script>
 <script src="tlog.replay.table.js?v=2"></script>
 <script src="tlog.replay.linear.js?v=9"></script>
-<script src="tlog.replay.core.js?v=2"></script>
+<script src="tlog.replay.core.js?v=4"></script>
 </body>
 </html>

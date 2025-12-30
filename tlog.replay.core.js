@@ -13,6 +13,7 @@
   const replayOverlay = document.getElementById("replayOverlay");
   const replayMeasure = document.getElementById("replayMeasure");
   const notesListEl = document.getElementById("notesList");
+  const exportDiffsBtn = document.getElementById("exportDiffsBtn");
 
   const controlsToDisable = [
     document.getElementById("newBtn"),
@@ -444,6 +445,107 @@
   replayStopBtn.addEventListener("click", stopReplay);
   replaySlider.addEventListener("input", handleSliderInput);
   replaySpeed.addEventListener("change", updateSpeed);
+
+  function downloadJSON(obj, filename) {
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function diffPrettyShort(diffs, context) {
+    const html = [];
+    const pattern_amp = /&/g;
+    const pattern_lt = /</g;
+    const pattern_gt = />/g;
+    const pattern_para = /\n/g;
+    for (let x = 0; x < diffs.length; x += 1) {
+      const op = diffs[x][0];
+      const data = diffs[x][1];
+      const text = data
+        .replace(pattern_amp, "&amp;")
+        .replace(pattern_lt, "&lt;")
+        .replace(pattern_gt, "&gt;")
+        .replace(pattern_para, "&para;<br>");
+      switch (op) {
+        case DIFF_INSERT:
+          html[x] = `<ins style="background:#e6ffe6;">${text}</ins>`;
+          break;
+        case DIFF_DELETE:
+          html[x] = `<del style="background:#ffe6e6;">${text}</del>`;
+          break;
+        case DIFF_EQUAL:
+          if (x === 0) {
+            html[x] = `<span>${text.substring(text.length - context)}</span>`;
+          } else {
+            html[x] = `<span>${text.substring(0, context)}</span>`;
+          }
+          break;
+      }
+    }
+    return html.join("");
+  }
+
+  function exportDiffs() {
+    const note = app.getActive();
+    if (!note) {
+      app.setStatus("Pick a note to export diffs.");
+      return;
+    }
+    if (typeof diff_match_patch === "undefined") {
+      app.setStatus("diff_match_patch not loaded.");
+      return;
+    }
+
+    const logs = app.ensureLogs(note);
+    const entries = Object.entries(logs.text_records || {})
+      .map(([ts, value]) => ({ ts: Number(ts), text: String(value || "") }))
+      .filter(e => Number.isFinite(e.ts))
+      .sort((a, b) => a.ts - b.ts);
+
+    if (entries.length === 0) {
+      app.setStatus("No text records to diff.");
+      return;
+    }
+
+    const dmp = new diff_match_patch();
+    const diffs = [];
+    for (let i = 1; i < entries.length; i += 1) {
+      const prevText = entries[i - 1].text;
+      const currText = entries[i].text;
+      const diff = dmp.diff_main(prevText, currText);
+      dmp.diff_cleanupSemantic(diff);
+      const steps = diff.map(([op, text]) => ({
+        op: op === DIFF_INSERT ? "INSERT" : op === DIFF_DELETE ? "DELETE" : "EQUAL",
+        text
+      }));
+      diffs.push({
+        ts: entries[i].ts,
+        prevLen: prevText.length,
+        currLen: currText.length,
+        diff: steps,
+        prettyHtml: diffPrettyShort(diff, 20)
+      });
+    }
+
+    const payload = {
+      noteId: note.id,
+      title: note.title || "",
+      exportedAt: new Date().toISOString(),
+      diffs
+    };
+
+    downloadJSON(payload, `keep-lite-${note.id}-diffs.json`);
+  }
+
+  if (exportDiffsBtn) {
+    exportDiffsBtn.addEventListener("click", exportDiffs);
+  }
 
   ["beforeinput", "keydown", "paste", "drop"].forEach(type => {
     replayBody.addEventListener(type, blockEditing, true);
