@@ -95,6 +95,54 @@
     return total;
   }
 
+  function countUserInsertions(prevText, currText, cursorPos) {
+    if (!dmp) return Math.max(0, currText.length - prevText.length);
+    const diff = dmp.diff_main(prevText, currText);
+    dmp.diff_cleanupSemantic(diff);
+
+    let pos = 0;
+    const ops = [];
+    diff.forEach(([op, text]) => {
+      if (op === DIFF_EQUAL) {
+        pos += text.length;
+        return;
+      }
+      if (op === DIFF_INSERT) {
+        ops.push({ type: "insert", text, start: pos, end: pos + text.length });
+        pos += text.length;
+        return;
+      }
+      if (op === DIFF_DELETE) {
+        ops.push({ type: "delete", text, start: pos, end: pos });
+      }
+    });
+
+    let userIndex = -1;
+    if (Number.isFinite(cursorPos)) {
+      for (let i = ops.length - 1; i >= 0; i -= 1) {
+        const op = ops[i];
+        if (op.type === "insert" && cursorPos >= op.start && cursorPos <= op.end) {
+          userIndex = i;
+          break;
+        }
+      }
+      if (userIndex === -1) {
+        for (let i = ops.length - 1; i >= 0; i -= 1) {
+          const op = ops[i];
+          if (op.type === "delete" && cursorPos === op.start) {
+            userIndex = i;
+            break;
+          }
+        }
+      }
+    }
+    if (userIndex === -1 && ops.length) userIndex = ops.length - 1;
+
+    const op = ops[userIndex];
+    if (!op || op.type !== "insert") return 0;
+    return op.text.length;
+  }
+
   function lastPoint(series, t) {
     let lo = 0;
     let hi = series.length - 1;
@@ -129,10 +177,16 @@
 
     let cumulativeInsert = 0;
     let prevText = "";
+    const cursorAtTs = new Map();
+    cursorEvents.forEach(ev => {
+      const pos = Number(String(ev.value).split(":")[0]);
+      if (Number.isFinite(pos)) cursorAtTs.set(ev.ts, pos);
+    });
 
     textEvents.forEach((ev, idx) => {
       const text = String(ev.value || "");
-      const inserts = countInsertions(prevText, text);
+      const cursorPos = cursorAtTs.has(ev.ts) ? cursorAtTs.get(ev.ts) : null;
+      const inserts = countUserInsertions(prevText, text, cursorPos);
       cumulativeInsert += inserts;
       prevText = text;
 

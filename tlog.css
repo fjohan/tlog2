@@ -360,6 +360,10 @@ select {
   color: #777;
 }
 
+.linear-auto {
+  color: #777;
+}
+
 .linear-controls {
   display: flex;
   align-items: center;

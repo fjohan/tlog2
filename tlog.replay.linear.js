@@ -37,18 +37,77 @@
     return null;
   }
 
-  function diffTokens(prevText, currText) {
+  function diffTokens(prevText, currText, cursorPos) {
     const diff = dmp.diff_main(prevText, currText);
     dmp.diff_cleanupSemantic(diff);
-    const tokens = [];
+
+    let pos = 0;
+    const ops = [];
     diff.forEach(([op, text]) => {
+      if (op === DIFF_EQUAL) {
+        pos += text.length;
+        return;
+      }
       if (op === DIFF_INSERT) {
-        if (text) tokens.push(text);
-      } else if (op === DIFF_DELETE) {
-        const len = text.length;
-        if (len > 0) tokens.push(len === 1 ? "<DELETE>" : `<DELETE${len}>`);
+        ops.push({ type: "insert", text, start: pos, end: pos + text.length });
+        pos += text.length;
+        return;
+      }
+      if (op === DIFF_DELETE) {
+        ops.push({ type: "delete", text, start: pos, end: pos });
       }
     });
+
+    let userIndex = -1;
+    if (Number.isFinite(cursorPos)) {
+      for (let i = ops.length - 1; i >= 0; i -= 1) {
+        const op = ops[i];
+        if (op.type === "insert" && cursorPos >= op.start && cursorPos <= op.end) {
+          userIndex = i;
+          break;
+        }
+      }
+      if (userIndex === -1) {
+        for (let i = ops.length - 1; i >= 0; i -= 1) {
+          const op = ops[i];
+          if (op.type === "delete" && cursorPos === op.start) {
+            userIndex = i;
+            break;
+          }
+        }
+      }
+    }
+    if (userIndex === -1 && ops.length) {
+      userIndex = ops.length - 1;
+    }
+
+    const tokens = [];
+    for (let i = 0; i < ops.length; i += 1) {
+      const op = ops[i];
+      const isUser = i === userIndex;
+      const next = ops[i + 1];
+
+      if (!isUser && op.type === "delete" && next && next.type === "insert" && i + 1 !== userIndex) {
+        tokens.push({ type: "auto", value: `<AUTO,${op.text}:${next.text}>` });
+        i += 1;
+        continue;
+      }
+
+      if (isUser) {
+        if (op.type === "insert") {
+          tokens.push({ type: "text", value: op.text });
+        } else if (op.type === "delete") {
+          const len = op.text.length;
+          tokens.push({ type: "delete", count: len });
+        }
+      } else if (op.type === "insert") {
+        tokens.push({ type: "auto", value: `<AUTO,${op.text}>` });
+      } else if (op.type === "delete") {
+        const len = op.text.length;
+        tokens.push({ type: "auto", value: len > 1 ? `<AUTO,DELETE${len}>` : "<AUTO,DELETE>" });
+      }
+    }
+
     return tokens;
   }
 
@@ -70,9 +129,17 @@
       return;
     }
 
+    const cursorPosAtTs = new Map();
+    toSortedEvents(logs.cursor_records).forEach(ev => {
+      const parts = String(ev.value || "").split(":");
+      const start = Number(parts[0]);
+      if (Number.isFinite(start)) cursorPosAtTs.set(ev.ts, start);
+    });
+
     const textEvents = entries.map((entry, idx) => {
       const prevText = idx === 0 ? "" : entries[idx - 1].text;
-      const tokens = diffTokens(prevText, entry.text || "");
+      const cursorPos = cursorPosAtTs.has(entry.ts) ? cursorPosAtTs.get(entry.ts) : null;
+      const tokens = diffTokens(prevText, entry.text || "", cursorPos);
       return { ts: entry.ts, kind: "text", tokens };
     }).filter(e => e.tokens.length > 0);
 
@@ -274,11 +341,12 @@
 
       if (ev.kind === "text") {
         ev.tokens.forEach(token => {
-          if (token.startsWith("<DELETE")) {
-            const count = Number(token.replace(/[^\d]/g, "")) || 1;
-            pushToken({ type: "delete", count });
-          } else {
-            pushToken({ type: "text", value: token });
+          if (token.type === "text") {
+            pushToken({ type: "text", value: token.value });
+          } else if (token.type === "delete") {
+            pushToken({ type: "delete", count: token.count });
+          } else if (token.type === "auto") {
+            pushToken({ type: "auto", value: token.value });
           }
         });
       } else if (ev.kind === "sel") {
@@ -306,6 +374,9 @@
       if (token.type === "delete") {
         const value = token.count > 1 ? `<DELETE${token.count}>` : "<DELETE>";
         return `<span class="linear-delete">${escapeHtml(value)}</span>`;
+      }
+      if (token.type === "auto") {
+        return `<span class="linear-auto">${escapeHtml(token.value)}</span>`;
       }
       if (token.type === "nav") {
         const value = token.count > 1 ? `<${token.code}${token.count}>` : `<${token.code}>`;

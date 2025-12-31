@@ -194,6 +194,7 @@
   }
 
 
+
   // Attach logging listeners to a textarea-like element
   function attachEditorLogging(el, { isOverlay=false } = {}) {
     // Text changes
@@ -222,6 +223,7 @@
     el.addEventListener("scroll", () => logScroll(el), { passive: true });
 
     // Cursor changes are logged via input + selectionchange.
+
 
     // Focus/blur update session endtime
     el.addEventListener("focus", () => {

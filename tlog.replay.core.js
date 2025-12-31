@@ -520,7 +520,20 @@
       const currText = entries[i].text;
       const diff = dmp.diff_main(prevText, currText);
       dmp.diff_cleanupSemantic(diff);
-      const steps = diff.map(([op, text]) => ({
+      let start = 0;
+      if (diff.length && diff[0][0] === DIFF_EQUAL) {
+        start = diff[0][1].length;
+      }
+
+      let trimmed = diff.slice();
+      if (trimmed.length && trimmed[0][0] === DIFF_EQUAL) {
+        trimmed = trimmed.slice(1);
+      }
+      if (trimmed.length && trimmed[trimmed.length - 1][0] === DIFF_EQUAL) {
+        trimmed = trimmed.slice(0, -1);
+      }
+
+      const steps = trimmed.map(([op, text]) => ({
         op: op === DIFF_INSERT ? "INSERT" : op === DIFF_DELETE ? "DELETE" : "EQUAL",
         text
       }));
@@ -528,6 +541,7 @@
         ts: entries[i].ts,
         prevLen: prevText.length,
         currLen: currText.length,
+        start,
         diff: steps,
         prettyHtml: diffPrettyShort(diff, 20)
       });

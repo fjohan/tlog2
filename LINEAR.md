@@ -69,3 +69,4 @@ ingetnyttproblem, <5.05>
 - The linear view is a derived analysis. It reflects how logs are collected, not a verbatim keystroke history.
 - If key or cursor events are missing, some navigation actions may fall back to `<NAV,pos>`.
 - Pauses are calculated between consecutive activities (including selections and navigation).
+- Autocorrect detection is heuristic-based; other replacement patterns may exist and are not yet handled.
