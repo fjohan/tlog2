@@ -1,0 +1,258 @@
+{
+    "noteId": "n_mk3x03av_ei5uy2",
+    "title": "",
+    "reportedAt": "2026-01-07T11:09:36.927Z",
+    "diffs": [
+        "CURSOR 0",
+        "0 0 1 (1,\"P\")",
+        "CURSOR 1",
+        "CURSOR 1",
+        "1 1 2 (0,\"P\") (1,\"a\")",
+        "CURSOR 2",
+        "CURSOR 2",
+        "2 2 3 (0,\"Pa\") (1,\"s\")",
+        "CURSOR 3",
+        "CURSOR 3",
+        "3 3 4 (0,\"Pas\") (1,\"t\")",
+        "CURSOR 4",
+        "CURSOR 4",
+        "4 4 5 (0,\"Past\") (1,\"e\")",
+        "CURSOR 5",
+        "CURSOR 5",
+        "5 5 6 (0,\"Paste\") (1,\" \")",
+        "CURSOR 6",
+        "CURSOR 6",
+        "6 6 7 (0,\"Paste \") (1,\"m\")",
+        "CURSOR 7",
+        "CURSOR 7",
+        "7 7 8 (0,\"Paste m\") (1,\"e\")",
+        "CURSOR 8",
+        "CURSOR 8",
+        "8 8 8 (0,\"Paste me\")",
+        "CURSOR 8",
+        "0 8 9 (0,\"Paste me\") (1,\"\n\")",
+        "CURSOR 9",
+        "CURSOR 9",
+        "CURSOR 8",
+        "CURSOR 6",
+        "CURSOR 8",
+        "CURSOR 9",
+        "CURSOR 9",
+        "9 9 11 (0,\"Paste me\n\") (1,\"me\")",
+        "CURSOR 11",
+        "CURSOR 11",
+        "11 11 11 (0,\"Paste me\nme\")",
+        "CURSOR 11",
+        "0 11 12 (0,\"Paste me\nme\") (1,\"\n\")",
+        "CURSOR 12",
+        "CURSOR 12"
+    ],
+    "linear_rendered": "<START><2.68>Paste<SPACE>me<5.03><CR><11.69><CR><2.88><END>",
+    "linear_debug": [
+        "<START> :: marker start",
+        "<2.68> :: pause 2.68s >= 1.00s",
+        "P :: diff insert from -Infinity to 1767784089647 for keydown Unidentified",
+        "a :: diff insert from 1767784089647 to 1767784089921 for keydown Unidentified",
+        "s :: diff insert from 1767784089921 to 1767784090218 for keydown Unidentified",
+        "t :: diff insert from 1767784090218 to 1767784090988 for keydown Unidentified",
+        "e :: diff insert from 1767784090988 to 1767784091438 for keydown Unidentified",
+        "<SPACE> :: diff insert from 1767784091438 to 1767784092184 for keydown Unidentified",
+        "m :: diff insert from 1767784092184 to 1767784092679 for keydown Unidentified",
+        "e :: diff insert from 1767784092679 to 1767784093018 for keydown Unidentified",
+        "<5.03> :: pause 5.03s >= 1.00s",
+        "<CR> :: keydown Enter",
+        "<11.69> :: pause 11.69s >= 1.00s",
+        "<CR> :: keydown Enter",
+        "<2.88> :: pause 2.88s >= 1.00s",
+        "<END> :: marker end",
+        "CHECK 1767784089645 ok len=1",
+        "CHECK 1767784089920 ok len=2",
+        "CHECK 1767784090216 ok len=3",
+        "CHECK 1767784090986 ok len=4",
+        "CHECK 1767784091434 ok len=5",
+        "CHECK 1767784092180 ok len=6",
+        "CHECK 1767784092676 ok len=7",
+        "CHECK 1767784093016 ok len=8",
+        "CHECK 1767784098047 ok len=9",
+        "CHECK 1767784109738 mismatch expected_len=12 actual_len=10"
+    ],
+    "linear_steps": [
+        {
+            "index": 0,
+            "token": "<START>",
+            "actual": "",
+            "reconstructed": ""
+        },
+        {
+            "index": 1,
+            "token": "<2.68>",
+            "actual": "",
+            "reconstructed": ""
+        },
+        {
+            "index": 2,
+            "token": "P",
+            "actual": "P",
+            "reconstructed": "P"
+        },
+        {
+            "index": 3,
+            "token": "a",
+            "actual": "Pa",
+            "reconstructed": "Pa"
+        },
+        {
+            "index": 4,
+            "token": "s",
+            "actual": "Pas",
+            "reconstructed": "Pas"
+        },
+        {
+            "index": 5,
+            "token": "t",
+            "actual": "Past",
+            "reconstructed": "Past"
+        },
+        {
+            "index": 6,
+            "token": "e",
+            "actual": "Paste",
+            "reconstructed": "Paste"
+        },
+        {
+            "index": 7,
+            "token": "<SPACE>",
+            "actual": "Paste ",
+            "reconstructed": "Paste "
+        },
+        {
+            "index": 8,
+            "token": "m",
+            "actual": "Paste m",
+            "reconstructed": "Paste m"
+        },
+        {
+            "index": 9,
+            "token": "e",
+            "actual": "Paste me",
+            "reconstructed": "Paste me"
+        },
+        {
+            "index": 10,
+            "token": "<5.03>",
+            "actual": "Paste me",
+            "reconstructed": "Paste me"
+        },
+        {
+            "index": 11,
+            "token": "<CR>",
+            "actual": "Paste me\n",
+            "reconstructed": "Paste me\n"
+        },
+        {
+            "index": 12,
+            "token": "<11.69>",
+            "actual": "Paste me\n",
+            "reconstructed": "Paste me\n"
+        },
+        {
+            "index": 13,
+            "token": "<CR>",
+            "actual": "Paste me\nme\n",
+            "reconstructed": "Paste me\n\n"
+        },
+        {
+            "index": 14,
+            "token": "<2.88>",
+            "actual": "",
+            "reconstructed": "Paste me\n\n"
+        },
+        {
+            "index": 15,
+            "token": "<END>",
+            "actual": "Paste me\nme\n",
+            "reconstructed": "Paste me\n\n"
+        }
+    ],
+    "logs": {
+        "header_records": {
+            "starttime": 1767784086968,
+            "endtime": 1767784112622
+        },
+        "text_records": {
+            "1767784089647": "P",
+            "1767784089921": "Pa",
+            "1767784090218": "Pas",
+            "1767784090988": "Past",
+            "1767784091438": "Paste",
+            "1767784092184": "Paste ",
+            "1767784092679": "Paste m",
+            "1767784093018": "Paste me",
+            "1767784098045": "Paste me",
+            "1767784098048": "Paste me\n",
+            "1767784108077": "Paste me\nme",
+            "1767784109736": "Paste me\nme",
+            "1767784109738": "Paste me\nme\n"
+        },
+        "cursor_records": {
+            "1767784088626": "0:0",
+            "1767784089647": "1:1",
+            "1767784089653": "1:1",
+            "1767784089921": "2:2",
+            "1767784089925": "2:2",
+            "1767784090218": "3:3",
+            "1767784090225": "3:3",
+            "1767784090988": "4:4",
+            "1767784090992": "4:4",
+            "1767784091438": "5:5",
+            "1767784091447": "5:5",
+            "1767784092184": "6:6",
+            "1767784092189": "6:6",
+            "1767784092679": "7:7",
+            "1767784092689": "7:7",
+            "1767784093018": "8:8",
+            "1767784093021": "8:8",
+            "1767784098045": "8:8",
+            "1767784098048": "9:9",
+            "1767784098053": "9:9",
+            "1767784100149": "8:8",
+            "1767784102317": "6:8",
+            "1767784103999": "8:8",
+            "1767784104662": "9:9",
+            "1767784104878": "9:9",
+            "1767784108077": "11:11",
+            "1767784108081": "11:11",
+            "1767784109736": "11:11",
+            "1767784109738": "12:12",
+            "1767784109755": "12:12"
+        },
+        "key_records": {
+            "1767784089645": "keydown: Unidentified",
+            "1767784089648": "keyup: Unidentified",
+            "1767784089920": "keydown: Unidentified",
+            "1767784089922": "keyup: Unidentified",
+            "1767784090216": "keydown: Unidentified",
+            "1767784090218": "keyup: Unidentified",
+            "1767784090986": "keydown: Unidentified",
+            "1767784090989": "keyup: Unidentified",
+            "1767784091434": "keydown: Unidentified",
+            "1767784091441": "keyup: Unidentified",
+            "1767784092180": "keydown: Unidentified",
+            "1767784092184": "keyup: Unidentified",
+            "1767784092676": "keydown: Unidentified",
+            "1767784092680": "keyup: Unidentified",
+            "1767784093016": "keydown: Unidentified",
+            "1767784093018": "keyup: Unidentified",
+            "1767784098043": "keydown: Unidentified",
+            "1767784098046": "keyup: Unidentified",
+            "1767784098047": "keydown: Enter",
+            "1767784098049": "keyup: Enter",
+            "1767784109735": "keydown: Unidentified",
+            "1767784109737": "keyup: Unidentified",
+            "1767784109738": "keydown: Enter",
+            "1767784109739": "keyup: Enter"
+        },
+        "scroll_records": [],
+        "mouse_records": []
+    }
+}

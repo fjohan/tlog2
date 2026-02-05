@@ -14,6 +14,9 @@
   const replayMeasure = document.getElementById("replayMeasure");
   const notesListEl = document.getElementById("notesList");
   const exportDiffsBtn = document.getElementById("exportDiffsBtn");
+  const reportBtn = document.getElementById("reportBtn");
+  const importLogsBtn = document.getElementById("importLogsBtn");
+  const importLogsInput = document.getElementById("importLogsInput");
 
   const controlsToDisable = [
     document.getElementById("newBtn"),
@@ -40,6 +43,7 @@
   let originalState = null;
   let inputLocked = false;
   let overlayState = { text: "", start: 0, end: 0 };
+  let overrideLogs = null;
 
   function setControlsDisabled(disabled) {
     controlsToDisable.forEach(el => { if (el) el.disabled = disabled; });
@@ -395,6 +399,36 @@
 
   function refreshReplayNote() {
     const note = app.getActive();
+    if (overrideLogs) {
+      const logs = overrideLogs.logs;
+      const entries = Object.entries(logs.text_records || {})
+        .map(([ts, value]) => ({ ts: Number(ts), text: String(value || "") }))
+        .filter(e => Number.isFinite(e.ts))
+        .sort((a, b) => a.ts - b.ts);
+
+      replayTitle.value = overrideLogs.title || "Imported log";
+      replayBody.value = entries.length ? entries[entries.length - 1].text : "";
+      updateReplayOverlay(replayBody.value, 0, 0);
+
+      if (!collectEvents(logs)) {
+        clearGraph();
+      }
+
+      if (window.tlogReplayTable) {
+        window.tlogReplayTable.buildTable({
+          note: { id: "imported" },
+          logs,
+          entries,
+          timeInfo: { t0, duration },
+          onSeek: seekToTimestamp
+        });
+      }
+
+      if (window.tlogReplayLinear) {
+        window.tlogReplayLinear.buildLinear({ logs, entries });
+      }
+      return;
+    }
     if (!note) {
       replayTitle.value = "";
       replayBody.value = "";
@@ -458,6 +492,18 @@
     URL.revokeObjectURL(url);
   }
 
+  function downloadText(text, filename) {
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function diffPrettyShort(diffs, context) {
     const html = [];
     const pattern_amp = /&/g;
@@ -491,74 +537,244 @@
     return html.join("");
   }
 
+  function buildDiffLines(logs, entries) {
+    const diffLines = [];
+    if (typeof diff_match_patch === "undefined") {
+      return diffLines;
+    }
+    const dmp = new diff_match_patch();
+    const cursorEvents = Object.entries(logs.cursor_records || {})
+      .map(([ts, value]) => ({
+        ts: Number(ts),
+        value: String(value || "")
+      }))
+      .filter(ev => Number.isFinite(ev.ts))
+      .sort((a, b) => a.ts - b.ts);
+
+    function cursorAt(ts) {
+      let lo = 0;
+      let hi = cursorEvents.length - 1;
+      let best = null;
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        const ev = cursorEvents[mid];
+        if (ev.ts <= ts) {
+          best = ev;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      if (!best) return 0;
+      const parts = best.value.split(":");
+      const start = Number(parts[0]);
+      return Number.isFinite(start) ? start : 0;
+    }
+
+    let prevCursor = 0;
+    const diffEvents = [];
+    for (let i = 0; i < entries.length; i += 1) {
+      const prevText = i === 0 ? "" : entries[i - 1].text;
+      const currText = entries[i].text;
+      const diff = dmp.diff_main(prevText, currText);
+      dmp.diff_cleanupSemantic(diff);
+      let firstEq = 0;
+      if (diff.length && diff[0][0] === DIFF_EQUAL) {
+        firstEq = diff[0][1].length;
+      }
+
+      const parts = diff.map(([op, text]) => `(${op},"${text}")`);
+      const currCursor = cursorAt(entries[i].ts);
+      diffEvents.push({
+        ts: entries[i].ts,
+        kind: "diff",
+        line: `${prevCursor} ${firstEq} ${currCursor} ${parts.join(" ")}`
+      });
+
+      let cursor = 0;
+      diff.forEach(([op, text], idx) => {
+        if (!text) return;
+        if (op === DIFF_EQUAL) {
+          if (idx !== diff.length - 1) cursor += text.length;
+        }
+        else if (op === DIFF_INSERT) cursor += text.length;
+        else if (op === DIFF_DELETE) cursor -= text.length;
+      });
+      prevCursor = cursor;
+    }
+
+    const cursorLines = cursorEvents.map(ev => {
+      const parts = ev.value.split(":");
+      const start = Number(parts[0]);
+      const cursorPos = Number.isFinite(start) ? start : 0;
+      return { ts: ev.ts, kind: "cursor", line: `CURSOR ${cursorPos}` };
+    });
+
+    const merged = [...diffEvents, ...cursorLines].sort((a, b) => {
+      if (a.ts !== b.ts) return a.ts - b.ts;
+      if (a.kind === b.kind) return 0;
+      return a.kind === "diff" ? -1 : 1;
+    });
+
+    merged.forEach(item => diffLines.push(item.line));
+    return diffLines;
+  }
+
   function exportDiffs() {
     const note = app.getActive();
-    if (!note) {
+    const source = overrideLogs || (note ? { logs: app.ensureLogs(note), title: note.title || "", id: note.id } : null);
+    if (!source) {
       app.setStatus("Pick a note to export diffs.");
       return;
     }
-    if (typeof diff_match_patch === "undefined") {
-      app.setStatus("diff_match_patch not loaded.");
-      return;
-    }
 
-    const logs = app.ensureLogs(note);
+    const logs = source.logs;
     const entries = Object.entries(logs.text_records || {})
       .map(([ts, value]) => ({ ts: Number(ts), text: String(value || "") }))
       .filter(e => Number.isFinite(e.ts))
       .sort((a, b) => a.ts - b.ts);
 
-    if (entries.length === 0) {
-      app.setStatus("No text records to diff.");
-      return;
-    }
+    const diffLines = buildDiffLines(logs, entries);
+    const exportVersion = "diffs-v4";
 
-    const dmp = new diff_match_patch();
-    const diffs = [];
-    for (let i = 1; i < entries.length; i += 1) {
-      const prevText = entries[i - 1].text;
-      const currText = entries[i].text;
-      const diff = dmp.diff_main(prevText, currText);
-      dmp.diff_cleanupSemantic(diff);
-      let start = 0;
-      if (diff.length && diff[0][0] === DIFF_EQUAL) {
-        start = diff[0][1].length;
-      }
+    const linearDebug = window.tlogReplayLinear?.buildLinearDebug
+      ? window.tlogReplayLinear.buildLinearDebug({ logs, entries }).debug
+      : [];
 
-      let trimmed = diff.slice();
-      if (trimmed.length && trimmed[0][0] === DIFF_EQUAL) {
-        trimmed = trimmed.slice(1);
-      }
-      if (trimmed.length && trimmed[trimmed.length - 1][0] === DIFF_EQUAL) {
-        trimmed = trimmed.slice(0, -1);
-      }
+    const header = [
+      `noteId: ${source.id || "imported"}`,
+      `title: ${source.title || ""}`,
+      `exportedAt: ${new Date().toISOString()}`,
+      `format: prevCursor firstEq currCursor (op,"text") | CURSOR pos`,
+      `exporter: ${exportVersion}`,
+      ""
+    ].join("\n");
 
-      const steps = trimmed.map(([op, text]) => ({
-        op: op === DIFF_INSERT ? "INSERT" : op === DIFF_DELETE ? "DELETE" : "EQUAL",
-        text
-      }));
-      diffs.push({
-        ts: entries[i].ts,
-        prevLen: prevText.length,
-        currLen: currText.length,
-        start,
-        diff: steps,
-        prettyHtml: diffPrettyShort(diff, 20)
-      });
-    }
+    const diffText = diffLines.join("\n");
+    const linearText = linearDebug.length ? `\n\n[linear_debug]\n${linearDebug.join("\n")}\n` : "";
+    const stepThrough = window.tlogReplayLinear?.buildLinearStep
+      ? window.tlogReplayLinear.buildLinearStep({ logs, entries })
+      : [];
+    const stepLines = stepThrough.map(step => {
+      return `${step.index} ${step.token} | actual:${step.actual} | reconstructed:${step.reconstructed}`;
+    });
+    const stepText = stepLines.length ? `\n\n[linear_steps]\n${stepLines.join("\n")}\n` : "";
+    const logsText = `\n\n[logs]\n${JSON.stringify(logs, null, 2)}\n`;
+    const payloadText = `${header}[diffs]\n${diffText}${linearText}${stepText}${logsText}`;
 
-    const payload = {
-      noteId: note.id,
-      title: note.title || "",
-      exportedAt: new Date().toISOString(),
-      diffs
-    };
-
-    downloadJSON(payload, `keep-lite-${note.id}-diffs.json`);
+    downloadText(payloadText, `keep-lite-${source.id || "import"}-diffs.txt`);
+    app.setStatus(`Exported diffs (${exportVersion}).`);
   }
 
   if (exportDiffsBtn) {
     exportDiffsBtn.addEventListener("click", exportDiffs);
+  }
+
+  async function reportCurrentState() {
+    const note = app.getActive();
+    const source = overrideLogs || (note ? { logs: app.ensureLogs(note), title: note.title || "", id: note.id } : null);
+    if (!source) {
+      app.setStatus("Pick a note to report.");
+      return;
+    }
+    if (window.location && window.location.protocol === "file:") {
+      app.setStatus("Report requires HTTP (PHP). Open via a local server.");
+      return;
+    }
+    app.setStatus("Reporting...");
+    const logs = source.logs;
+    const entries = Object.entries(logs.text_records || {})
+      .map(([ts, value]) => ({ ts: Number(ts), text: String(value || "") }))
+      .filter(e => Number.isFinite(e.ts))
+      .sort((a, b) => a.ts - b.ts);
+    const diffLines = buildDiffLines(logs, entries);
+    const linearDebug = window.tlogReplayLinear?.buildLinearDebug
+      ? window.tlogReplayLinear.buildLinearDebug({ logs, entries }).debug
+      : [];
+    const linearSteps = window.tlogReplayLinear?.buildLinearStep
+      ? window.tlogReplayLinear.buildLinearStep({ logs, entries })
+      : [];
+    const linearRendered = document.getElementById("linearOutput")?.innerText || "";
+    const payload = {
+      noteId: source.id || "imported",
+      title: source.title || "",
+      reportedAt: new Date().toISOString(),
+      diffs: diffLines,
+      linear_rendered: linearRendered,
+      linear_debug: linearDebug,
+      linear_steps: linearSteps,
+      logs
+    };
+
+    try {
+      console.log('Here');
+      const res = await fetch("report.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = result && result.error ? `: ${result.error}` : "";
+        app.setStatus(`Report failed (${res.status})${detail}`);
+        return;
+      }
+      app.setStatus(result.path ? `Report saved: ${result.path}` : "Report saved.");
+    } catch (err) {
+      console.error(err);
+      app.setStatus("Report failed (network).");
+    }
+  }
+
+  if (reportBtn) {
+    reportBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      reportCurrentState();
+    });
+  }
+
+  function normalizeLogs(payload) {
+    if (!payload || typeof payload !== "object") return null;
+    const rawLogs = payload.logs && typeof payload.logs === "object" ? payload.logs : payload;
+    if (!rawLogs.text_records) return null;
+    const temp = { logs: rawLogs };
+    const logs = app.ensureLogs(temp);
+    return {
+      logs,
+      title: payload.title || "",
+      id: payload.noteId || "imported"
+    };
+  }
+
+  function handleImportFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const payload = JSON.parse(reader.result);
+        const normalized = normalizeLogs(payload);
+        if (!normalized) {
+          app.setStatus("Invalid log file.");
+          return;
+        }
+        overrideLogs = normalized;
+        app.setStatus("Loaded external logs.");
+        refreshReplayNote();
+      } catch (err) {
+        console.error(err);
+        app.setStatus("Failed to parse log file.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  if (importLogsBtn && importLogsInput) {
+    importLogsBtn.addEventListener("click", () => importLogsInput.click());
+    importLogsInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) handleImportFile(file);
+      importLogsInput.value = "";
+    });
   }
 
   ["beforeinput", "keydown", "paste", "drop"].forEach(type => {
@@ -569,7 +785,12 @@
   replayBody.addEventListener("scroll", refreshOverlay);
   window.addEventListener("resize", refreshOverlay);
 
-  document.addEventListener("tlog:notechange", refreshReplayNote);
+  document.addEventListener("tlog:notechange", () => {
+    if (overrideLogs) {
+      overrideLogs = null;
+    }
+    refreshReplayNote();
+  });
 
   if (notesListEl) {
     notesListEl.addEventListener("click", () => setTimeout(refreshReplayNote, 0));

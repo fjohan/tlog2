@@ -340,6 +340,72 @@ select {
   overflow: auto;
 }
 
+.linear-token {
+  cursor: pointer;
+}
+
+.linear-token:focus {
+  outline: 1px dashed #555;
+  outline-offset: 2px;
+}
+
+.linear-compare {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #fafafa;
+  min-height: 60px;
+}
+
+.linear-compare .label {
+  display: block;
+  color: #666;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.linear-compare-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.linear-compare-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.linear-compare-label {
+  color: #666;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.linear-compare-line {
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.linear-compare-cell {
+  display: inline-block;
+  width: 1ch;
+  text-align: center;
+}
+
+.linear-compare-cell.diff {
+  background: #ffe7e7;
+  color: #8d0000;
+}
+
 .linear-insert {
   color: #0a7a2a;
 }

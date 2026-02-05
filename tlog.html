@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Keep-lite + Process Logs (IndexedDB)</title>
   <link rel="stylesheet" href="tlog.css" />
 </head>
@@ -78,6 +81,9 @@
               <button id="exportBtn" type="button" title="Export all notes to JSON">Export</button>
               <button id="exportLogsBtn" type="button" title="Export active note logs to JSON">Export logs</button>
               <button id="exportDiffsBtn" type="button" title="Export diffs for active note">Export diffs</button>
+              <button id="reportBtn" type="button" title="Report current note state to server">Report</button>
+              <button id="importLogsBtn" type="button" title="Load logs from JSON">Load logs</button>
+              <input id="importLogsInput" type="file" accept="application/json,.json,.txt" style="display:none;" />
               <button id="clearLogsBtn" type="button" title="Clear active note logs">Clear logs</button>
               <button id="deleteBtn" class="danger" type="button">Delete</button>
             </div>
@@ -153,6 +159,7 @@
               <input id="pauseThreshold" type="number" min="0" step="0.05" value="0.2" />
             </div>
             <div id="linearOutput" class="linear-output" role="textbox" aria-readonly="true"></div>
+            <div id="linearCompare" class="linear-compare" aria-live="polite"></div>
           </div>
 
           <div class="editor-shell replay-editor">
@@ -184,11 +191,11 @@
   </div>
 </div>
 
-<script src="tlog.js?v=2"></script>
-<script src="../../simple/diff_match_patch.js?v=2"></script>
-<script src="tlog.replay.graph.js?v=5"></script>
-<script src="tlog.replay.table.js?v=2"></script>
-<script src="tlog.replay.linear.js?v=10"></script>
-<script src="tlog.replay.core.js?v=5"></script>
+<script src="tlog.js"></script>
+<script src="../../simple/diff_match_patch.js"></script>
+<script src="tlog.replay.graph.js"></script>
+<script src="tlog.replay.table.js"></script>
+<script src="tlog.replay.linear.js"></script>
+<script src="tlog.replay.core.js"></script>
 </body>
 </html>

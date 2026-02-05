@@ -9,6 +9,8 @@ This repository is a small static web app split into HTML, CSS, and JS modules. 
 - `tlog.replay.core.js`: replay controls and text/cursor playback logic.
 - `tlog.replay.graph.js`: progress graph rendering.
 - `tlog.replay.table.js`: revision table generation using `diff_match_patch`.
+- `tlog.replay.linear.js`: linear analysis output and pause threshold handling.
+- `LINEAR.md`: format and heuristics for linear analysis.
 - `../../simple/diff_match_patch.js`: local diff library used for revision table diffs.
 
 ## Build, Test, and Development Commands
@@ -35,6 +37,7 @@ There is no automated test framework in this repo. Validate changes manually:
 - Create a note, edit the body, and verify autosave and logging counts update.
 - Switch to Replay & Analysis and ensure the progress graph and revision table update on note selection.
 - Export logs and confirm a JSON download occurs.
+- Use `Load logs` to import an exported JSON file (either full export or a raw `logs` object) and verify the replay, graph, table, and linear output refresh.
 
 ## Commit & Pull Request Guidelines
 No Git history or conventions are present in this repository. If you add commits, use clear, imperative messages (e.g., `Add log export button`) and include a brief description of user-facing changes. For pull requests, include:
